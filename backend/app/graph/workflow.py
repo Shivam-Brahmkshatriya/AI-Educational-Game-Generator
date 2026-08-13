@@ -60,12 +60,13 @@ async def master_designer_node(state: GameState) -> Dict[str, Any]:
         mechanics_idea=state.get("mechanics_idea", ""),
         narrative_idea=state.get("narrative_idea", ""),
         educational_idea=state.get("educational_idea", ""),
+        genre_override=state.get("genre_override"),
         feedback=feedback
     )
     return {
         "gdd": gdd,
         "user_feedback": "", # reset after incorporation
-        "logs": state.get("logs", []) + [{"agent": "Master Designer", "status": "completed", "message": f"Compiled canonical GDD: '{gdd.get('game_title')}'."}]
+        "logs": state.get("logs", []) + [{"agent": "Master Designer", "status": "completed", "message": f"Compiled canonical GDD: '{gdd.get('game_title')}' (Genre: {gdd.get('genre')})."}]
     }
 
 async def critic_node(state: GameState) -> Dict[str, Any]:
