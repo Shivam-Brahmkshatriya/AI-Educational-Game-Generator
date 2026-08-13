@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>tic tac toe Challenge</title>
+  <style>
+    body {
+      margin: 0; padding: 0;
+      background-color: #090d16; color: #ffffff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; overflow: hidden;
+    }
+    h1 { color: #38bdf8; margin-bottom: 5px; font-size: 1.8rem; text-shadow: 0 0 10px rgba(56,189,248,0.5); }
+    p.subtitle { color: #94a3b8; margin-top: 0; margin-bottom: 20px; font-size: 0.9rem; }
+    
+    #board {
+      display: grid;
+      grid-template-columns: repeat(3, 110px);
+      grid-template-rows: repeat(3, 110px);
+      gap: 12px;
+      background: #1e293b;
+      padding: 16px;
+      border-radius: 16px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.6), 0 0 20px rgba(56,189,248,0.2);
+      border: 2px solid rgba(56,189,248,0.3);
+    }
+    .cell {
+      background: #0f172a;
+      border: 2px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 3rem; font-weight: 800; cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+    .cell:hover {
+      background: #1e293b;
+      border-color: #38bdf8;
+      transform: scale(1.04);
+    }
+    .cell.x { color: #38bdf8; text-shadow: 0 0 12px #38bdf8; }
+    .cell.o { color: #f87171; text-shadow: 0 0 12px #f87171; }
+    
+    #status {
+      margin-top: 20px; font-size: 1.2rem; font-weight: 600; color: #4ade80; text-align: center;
+    }
+    #quiz-modal {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(5,8,15,0.85); backdrop-filter: blur(8px);
+      align-items: center; justify-content: center; z-index: 100;
+    }
+    .modal-card {
+      background: #0f172a; border: 2px solid #38bdf8; border-radius: 16px;
+      padding: 24px; max-width: 420px; text-align: center; box-shadow: 0 0 30px rgba(56,189,248,0.3);
+    }
+    .btn {
+      padding: 10px 20px; background: #38bdf8; border: none; color: #000;
+      font-weight: 700; border-radius: 8px; cursor: pointer; margin: 8px;
+    }
+    .btn:hover { background: #7dd3fc; }
+  </style>
+</head>
+<body>
+
+  <h1>tic tac toe Challenge</h1>
+  <p class="subtitle">Answer educational questions correctly to claim your mark on the grid!</p>
+
+  <div id="board">
+    <div class="cell" onclick="handleCellClick(0)"></div>
+    <div class="cell" onclick="handleCellClick(1)"></div>
+    <div class="cell" onclick="handleCellClick(2)"></div>
+    <div class="cell" onclick="handleCellClick(3)"></div>
+    <div class="cell" onclick="handleCellClick(4)"></div>
+    <div class="cell" onclick="handleCellClick(5)"></div>
+    <div class="cell" onclick="handleCellClick(6)"></div>
+    <div class="cell" onclick="handleCellClick(7)"></div>
+    <div class="cell" onclick="handleCellClick(8)"></div>
+  </div>
+
+  <div id="status">Player X's Turn - Click any cell to solve!</div>
+
+  <div id="quiz-modal">
+    <div class="modal-card">
+      <h3 style="color:#38bdf8; margin-top:0;">Educational Challenge</h3>
+      <p id="quiz-question" style="font-size:0.95rem; color:#cbd5e1;"></p>
+      <button class="btn" onclick="submitAnswer(true)" id="ans-true">A) Correct Concept</button>
+      <button class="btn" style="background:#f87171;" onclick="submitAnswer(false)">B) Incorrect Concept</button>
+    </div>
+  </div>
+
+  <script>
+    let boardState = Array(9).fill(null);
+    let currentPlayer = 'X';
+    let selectedCellIndex = null;
+    let gameActive = true;
+
+    const questions = [
+      "Fact: Tic-Tac-Toe is a classic example of an impartial game, meaning the availab",
+      "True or False: Mastering key concepts helps win games!",
+      "Concept Check: Does this rule apply correctly?"
+    ];
+
+    function handleCellClick(index) {
+      if (!gameActive || boardState[index] !== null) return;
+      selectedCellIndex = index;
+      document.getElementById('quiz-question').innerText = questions[index % questions.length];
+      document.getElementById('quiz-modal').style.display = 'flex';
+    }
+
+    function submitAnswer(isCorrect) {
+      document.getElementById('quiz-modal').style.display = 'none';
+      if (isCorrect) {
+        boardState[selectedCellIndex] = currentPlayer;
+        const cells = document.querySelectorAll('.cell');
+        cells[selectedCellIndex].innerText = currentPlayer;
+        cells[selectedCellIndex].classList.add(currentPlayer.toLowerCase());
+        
+        if (checkWin()) {
+          document.getElementById('status').innerText = '🎉 Player ' + currentPlayer + ' Wins! Game Complete!';
+          gameActive = false;
+        } else if (boardState.every(c => c !== null)) {
+          document.getElementById('status').innerText = '🤝 Draw Game!';
+          gameActive = false;
+        } else {
+          currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+          document.getElementById('status').innerText = "Player " + currentPlayer + "'s Turn";
+          if (currentPlayer === 'O' && gameActive) {
+            setTimeout(botTurn, 600);
+          }
+        }
+      } else {
+        document.getElementById('status').innerText = '❌ Incorrect answer! Turn lost to opponent.';
+        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+        if (currentPlayer === 'O' && gameActive) {
+          setTimeout(botTurn, 600);
+        }
+      }
+    }
+
+    function botTurn() {
+      const emptyIndices = boardState.map((v, i) => v === null ? i : null).filter(v => v !== null);
+      if (emptyIndices.length > 0 && gameActive) {
+        const choice = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+        boardState[choice] = 'O';
+        const cells = document.querySelectorAll('.cell');
+        cells[choice].innerText = 'O';
+        cells[choice].classList.add('o');
+        
+        if (checkWin()) {
+          document.getElementById('status').innerText = '🤖 Bot Wins!';
+          gameActive = false;
+        } else {
+          currentPlayer = 'X';
+          document.getElementById('status').innerText = "Player X's Turn";
+        }
+      }
+    }
+
+    function checkWin() {
+      const wins = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+      ];
+      return wins.some(w => boardState[w[0]] && boardState[w[0]] === boardState[w[1]] && boardState[w[0]] === boardState[w[2]]);
+    }
+  </script>
+</body>
+</html>
