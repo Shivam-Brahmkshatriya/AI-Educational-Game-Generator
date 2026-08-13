@@ -15,10 +15,6 @@ GAME_GENRES = [
         "description": "2D tile maze where the player uses Arrow keys to navigate corridors, collect knowledge gems, dodge wall hazards, and reach the exit portal."
     },
     {
-        "name": "2D Bike Rider / Motorbike Highway Dodge",
-        "description": "Ride a high-speed motorcycle across a 3-lane highway, steering with Left/Right arrows, performing wheelie speed boosts, collecting energy canisters, and avoiding road cones."
-    },
-    {
         "name": "Physics Slingshot / Trajectory Launcher",
         "description": "Drag and release launcher with angle/power trajectory lines to hit target structures containing educational concepts."
     },
@@ -80,32 +76,32 @@ async def run_mechanic_agent(topic: str, research_facts: List[str], genre_overri
         if not genre:
             genre = {"name": genre_override, "description": f"Custom player genre: {genre_override}"}
     else:
-        if any(k in topic_lower for k in ["bike", "motorbike", "rider", "cycle", "motorcycle", "highway"]):
-            genre = GAME_GENRES[2]
-        elif any(k in topic_lower for k in ["brick", "breaker", "arkanoid", "bounce", "paddle", "pong"]):
-            genre = GAME_GENRES[7]
+        if any(k in topic_lower for k in ["brick", "breaker", "arkanoid", "bounce", "paddle", "pong"]):
+            genre = GAME_GENRES[6]
         elif any(k in topic_lower for k in ["bubble", "match", "cannon", "cluster"]):
-            genre = GAME_GENRES[9]
-        elif any(k in topic_lower for k in ["tower", "defense", "turret", "wave", "base"]):
-            genre = GAME_GENRES[10]
-        elif any(k in topic_lower for k in ["rpg", "quest", "wizard", "hero", "battle", "retro"]):
-            genre = GAME_GENRES[11]
-        elif any(k in topic_lower for k in ["memory", "card", "flip", "pair", "matching"]):
-            genre = GAME_GENRES[12]
-        elif any(k in topic_lower for k in ["word", "scramble", "spelling", "hang", "vocab"]):
-            genre = GAME_GENRES[13]
-        elif any(k in topic_lower for k in ["mario", "platform", "jump", "sonic", "side"]):
             genre = GAME_GENRES[8]
+        elif any(k in topic_lower for k in ["tower", "defense", "turret", "wave", "base"]):
+            genre = GAME_GENRES[9]
+        elif any(k in topic_lower for k in ["rpg", "quest", "wizard", "hero", "battle", "retro"]):
+            genre = GAME_GENRES[10]
+        elif any(k in topic_lower for k in ["memory", "card", "flip", "pair", "matching"]):
+            genre = GAME_GENRES[11]
+        elif any(k in topic_lower for k in ["word", "scramble", "spelling", "hang", "vocab"]):
+            genre = GAME_GENRES[12]
+        elif any(k in topic_lower for k in ["mario", "platform", "jump", "sonic", "side"]):
+            genre = GAME_GENRES[7]
         elif any(k in topic_lower for k in ["tic", "tac", "toe", "grid", "board", "puzzle", "matrix"]):
             genre = GAME_GENRES[0]
         elif any(k in topic_lower for k in ["maze", "dungeon", "labyrinth", "explore"]):
             genre = GAME_GENRES[1]
         elif any(k in topic_lower for k in ["slingshot", "launch", "angle", "catapult", "physics"]):
-            genre = GAME_GENRES[3]
+            genre = GAME_GENRES[2]
         elif any(k in topic_lower for k in ["runner", "gravity", "flip"]):
+            genre = GAME_GENRES[3]
+        elif any(k in topic_lower for k in ["slalom", "dodger", "race", "car", "drive"]):
             genre = GAME_GENRES[4]
         elif any(k in topic_lower for k in ["space", "ship", "shoot", "defend", "laser"]):
-            genre = GAME_GENRES[6]
+            genre = GAME_GENRES[5]
         else:
             genre = random.choice(GAME_GENRES)
 
@@ -123,7 +119,6 @@ Fact Database:
 
 STRICT REQUIREMENTS FOR THIS GENRE ({genre['name']}):
 1. THE GAMEPLAY MUST ACCURATELY REFLECT THIS GENRE:
-   - If Bike Rider: High-speed 3-lane motorcycle steering with nitro boost!
    - If Brick Breaker: Horizontal paddle bouncing balls to break concept bricks!
    - If Side-Scrolling Platformer: Jumping over gaps, collecting coins, reaching the flag!
    - If RPG Quest: 2D tile map exploration with wizard NPCs and concept spell battles!

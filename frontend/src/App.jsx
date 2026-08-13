@@ -12,13 +12,11 @@ const QUICK_TOPICS = [
   "Pythagorean Theorem",
   "Cybersecurity Basics",
   "Solar System & Gravity",
-  "Motorcycle Highway Physics",
   "Ancient History & World Empires"
 ];
 
 const GENRE_OPTIONS = [
   "Auto-Detect (AI Managed)",
-  "2D Bike Rider / Motorbike Highway Dodge",
   "Brick Breaker / Arkanoid Paddle Physics",
   "2D Side-Scrolling Jump & Run Platformer",
   "Bubble Shooter / Match-3 Cannon",
@@ -141,7 +139,7 @@ export default function App() {
             </h1>
           </div>
           <p style={{ fontSize: '0.9rem', color: '#94a3b8' }}>
-            14 Universal Arcade & RPG Engines | WebAudio Procedural SFX | Automated QA Verification
+            Multi-Agent Architecture | WebAudio Procedural SFX | Automated QA Verification
           </p>
         </div>
 
@@ -163,7 +161,7 @@ export default function App() {
             type="text"
             value={topicInput}
             onChange={(e) => setTopicInput(e.target.value)}
-            placeholder="e.g. Motorbike Physics, Fractions, Chemical Bonding, Ancient History..."
+            placeholder="e.g. Fractions, Chemical Bonding, Photosynthesis, Ancient History..."
             style={{
               flex: 1,
               background: '#090d16',
@@ -191,7 +189,7 @@ export default function App() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px', background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
           <div>
             <label style={{ fontSize: '0.8rem', color: '#38bdf8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-              <Layers style={{ width: '14px', height: '14px' }} /> Gameplay Genre Engine (14 Supported)
+              <Layers style={{ width: '14px', height: '14px' }} /> Gameplay Genre Engine
             </label>
             <select
               value={selectedGenre}

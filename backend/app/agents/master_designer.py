@@ -27,21 +27,14 @@ async def run_master_designer(
 
     if genre_override and genre_override != "Auto-Detect (AI Managed)":
         default_genre = genre_override
-        if "bike" in genre_override.lower() or "rider" in genre_override.lower():
-            default_controls = "Left / Right Arrow Keys to switch lanes, Up Arrow for Nitro Boost."
-            default_mechanic = "Player rides motorcycle at high speed on a 3-lane highway, collecting energy boost canisters and dodging cones."
-        elif "grid" in genre_override.lower() or "board" in genre_override.lower():
+        if "grid" in genre_override.lower() or "board" in genre_override.lower():
             default_controls = "Click grid cells to answer concept questions and claim cells."
             default_mechanic = "Players solve educational questions to claim grid cells in Tic-Tac-Toe turn-based format."
         elif "maze" in genre_override.lower():
             default_controls = "Arrow Keys / WASD to navigate hero through maze corridors."
             default_mechanic = "Player moves hero through tile maze, collecting knowledge gems while dodging wall traps."
     else:
-        if any(k in topic_lower for k in ["bike", "motorbike", "rider", "cycle", "motorcycle", "highway"]):
-            default_genre = "2D Bike Rider / Motorbike Highway Dodge"
-            default_controls = "Left / Right Arrow Keys to switch lanes, Up Arrow for Nitro Boost."
-            default_mechanic = "Player rides motorcycle at high speed on a 3-lane highway, collecting energy boost canisters and dodging cones."
-        elif any(k in topic_lower for k in ["tic", "tac", "toe", "grid", "board", "turn", "matrix", "puzzle"]):
+        if any(k in topic_lower for k in ["tic", "tac", "toe", "grid", "board", "turn", "matrix", "puzzle"]):
             default_genre = "Grid / Board / Turn-Based Game"
             default_controls = "Click any 3x3 grid cell to answer questions and place your mark (X or O)."
             default_mechanic = "Players click 3x3 grid cells, solve educational questions, and try to complete 3-in-a-row!"
@@ -129,7 +122,7 @@ Output EXACTLY a JSON object with this structure:
             "tagline": f"Master the rules of {topic} in an interactive {default_genre}!",
             "narrative": {
                 "setting": "Interactive Learning Environment",
-                "hero_name": "Rider / Player 1",
+                "hero_name": "Player 1",
                 "objective": f"Solve challenges and master {topic}!"
             },
             "gameplay_loop": {
