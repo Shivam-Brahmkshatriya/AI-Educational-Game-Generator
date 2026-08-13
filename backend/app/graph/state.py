@@ -2,6 +2,8 @@ from typing import TypedDict, List, Dict, Any, Optional
 
 class GameState(TypedDict):
     topic: str
+    genre_override: Optional[str]
+    target_grade: Optional[str]
     research_facts: List[str]
     mechanics_idea: str
     narrative_idea: str

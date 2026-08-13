@@ -2,7 +2,7 @@ import os
 import json
 import asyncio
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
@@ -39,6 +39,8 @@ active_sessions: Dict[str, Dict[str, Any]] = {}
 
 class GenerateRequest(BaseModel):
     topic: str
+    genre_override: Optional[str] = None
+    target_grade: Optional[str] = "Middle School (6-8)"
 
 class HitlResumeRequest(BaseModel):
     session_id: str
@@ -59,6 +61,8 @@ async def start_generation(req: GenerateRequest):
     active_sessions[session_id] = {
         "session_id": session_id,
         "topic": topic,
+        "genre_override": req.genre_override,
+        "target_grade": req.target_grade,
         "status": "initialized",
         "logs": [],
         "gdd": None,
@@ -66,8 +70,8 @@ async def start_generation(req: GenerateRequest):
         "output_url": None
     }
     
-    logger.info(f"Initialized new game generation session '{session_id}' for topic: '{topic}'")
-    return {"session_id": session_id, "topic": topic}
+    logger.info(f"Initialized session '{session_id}' | Topic: '{topic}' | Genre Override: '{req.genre_override}' | Grade: '{req.target_grade}'")
+    return {"session_id": session_id, "topic": topic, "genre_override": req.genre_override, "target_grade": req.target_grade}
 
 @app.post("/api/hitl/resume")
 async def resume_hitl(req: HitlResumeRequest):
@@ -79,13 +83,9 @@ async def resume_hitl(req: HitlResumeRequest):
     session["hitl_pending"] = False
     
     config = {"configurable": {"thread_id": session_id}}
-    
-    # Resume LangGraph execution passing the human command
     command = Command(resume={"action": req.action, "feedback": req.feedback})
     
-    # Run resume in background task
     asyncio.create_task(run_graph_execution(session_id, command_resume=command))
-    
     return {"status": "resumed", "session_id": session_id, "action": req.action}
 
 @app.get("/api/games")
@@ -122,7 +122,6 @@ async def run_graph_execution(session_id: str, input_state: Dict[str, Any] = Non
                 rel_path = Path(out_path).parent.name
                 session["output_url"] = f"/games/{rel_path}/index.html"
                 
-            # Broadcast state via websocket if connected
             ws = session.get("ws")
             if ws:
                 await ws.send_json({
@@ -135,7 +134,6 @@ async def run_graph_execution(session_id: str, input_state: Dict[str, Any] = Non
                     "qa_passed": event.get("qa_passed")
                 })
                 
-        # Check if paused at HITL interrupt
         state_info = graph_app.get_state(config)
         if state_info.next and "hitl_breakpoint" in state_info.next:
             session["hitl_pending"] = True
@@ -174,16 +172,18 @@ async def websocket_pipeline(websocket: WebSocket, session_id: str):
     session = active_sessions[session_id]
     session["ws"] = websocket
     
-    # Start graph execution for new session
     if session["status"] == "initialized":
         session["status"] = "running"
-        initial_input = {"topic": session["topic"]}
+        initial_input = {
+            "topic": session["topic"],
+            "genre_override": session.get("genre_override"),
+            "target_grade": session.get("target_grade")
+        }
         asyncio.create_task(run_graph_execution(session_id, input_state=initial_input))
 
     try:
         while True:
-            data = await websocket.receive_text()
-            # Heartbeat / messages
+            await websocket.receive_text()
             await websocket.send_json({"type": "pong"})
     except WebSocketDisconnect:
         session["ws"] = None

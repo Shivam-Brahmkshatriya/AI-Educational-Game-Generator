@@ -1,6 +1,6 @@
 import logging
 import random
-from typing import List
+from typing import List, Optional
 from app.agents.base import call_ollama
 
 logger = logging.getLogger(__name__)
@@ -32,20 +32,28 @@ GAME_GENRES = [
     }
 ]
 
-async def run_mechanic_agent(topic: str, research_facts: List[str]) -> str:
+async def run_mechanic_agent(topic: str, research_facts: List[str], genre_override: Optional[str] = None) -> str:
     """
     Brainstorms dynamic 2D Phaser.js mechanics tailored to a chosen arcade/board genre.
+    Respects manual genre_override if provided.
     """
     topic_lower = topic.lower()
-    
-    # Auto-detect specific genre request from topic name if present
-    if any(k in topic_lower for k in ["tic", "tac", "toe", "grid", "board", "matrix", "turn"]):
-        genre = GAME_GENRES[0] # Grid / Board
-    elif any(k in topic_lower for k in ["maze", "labyrinth", "dungeon", "explore"]):
-        genre = GAME_GENRES[1] # Maze Explorer
-    else:
-        # Otherwise pick a dynamic genre to guarantee variety
-        genre = random.choice(GAME_GENRES[2:])
+    genre = None
+
+    if genre_override and genre_override != "Auto-Detect (AI Managed)":
+        for g in GAME_GENRES:
+            if g["name"].lower() in genre_override.lower() or genre_override.lower() in g["name"].lower():
+                genre = g
+                break
+
+    if not genre:
+        # Auto-detect genre based on topic
+        if any(k in topic_lower for k in ["tic", "tac", "toe", "grid", "board", "matrix", "turn"]):
+            genre = GAME_GENRES[0] # Grid / Board
+        elif any(k in topic_lower for k in ["maze", "labyrinth", "dungeon", "explore"]):
+            genre = GAME_GENRES[1] # Maze Explorer
+        else:
+            genre = random.choice(GAME_GENRES[2:])
 
     facts_str = "\n".join([f"- {f}" for f in research_facts])
     
@@ -58,20 +66,16 @@ Key Facts to Teach:
 SELECTED GAME GENRE: {genre['name']}
 Genre Style Description: {genre['description']}
 
-Task:
-Design a unique 2D gameplay loop in Phaser.js using the "{genre['name']}" format.
+Propose a high-octane 2D game mechanic loop for this genre.
+Your proposal MUST explicitly explain:
+1. Player Controls & Core Movement matching the genre ({genre['name']}).
+2. How facts from "{topic}" trigger active gameplay rewards (e.g. ammo boost, speed dash, grid claim, shield, score multiplier).
+3. Primary win and loss conditions.
 
-STRICT RULES:
-1. DO NOT use generic falling-object catcher templates.
-2. If the genre is Grid/Board (e.g. Tic-Tac-Toe), design an interactive 3x3 clickable grid turn game!
-3. If the genre is Maze, design a 2D tile explorer game!
-4. Ensure player controls are explicit and responsive.
-
-Detail:
-- Selected Genre & Title Concept
-- Exact Player Controls & Actions
-- Core Gameplay Loop & Win/Loss Conditions
-- How the educational facts trigger dynamic gameplay rewards.
+Keep it detailed, concise, and focused strictly on active gameplay mechanics.
 """
-    system_prompt = f"You design creative 2D games in the {genre['name']} genre."
-    return await call_ollama(prompt, system_prompt=system_prompt)
+    system_prompt = "You design novel 2D game mechanics matching specific arcade genres. Return concise text."
+    
+    response = await call_ollama(prompt, system_prompt=system_prompt)
+    logger.info(f"Mechanics Agent generated proposal for topic '{topic}' using genre '{genre['name']}'")
+    return response

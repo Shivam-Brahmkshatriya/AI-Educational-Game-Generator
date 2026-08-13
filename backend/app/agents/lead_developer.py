@@ -13,6 +13,7 @@ async def run_lead_developer(
 ) -> str:
     """
     Authors a complete, self-contained single-file Phaser.js HTML5 game matching the GDD genre & mechanics.
+    Injects WebAudio procedural sound synthesis, particle effects, and post-game educational analytics.
     """
     gdd_str = json.dumps(gdd, indent=2)
     palette_str = json.dumps(asset_palette, indent=2)
@@ -54,16 +55,15 @@ STRICT REQUIREMENTS:
    - If Slingshot / Physics: Create drag-and-launch physics.
 3. DO NOT default to a falling object catcher or shooter if the genre is a board game, grid puzzle, maze, or runner!
 4. Use inline JavaScript inside a `<script>` tag. No external assets/images! Use Phaser procedural graphics or styled HTML/Canvas buttons.
+5. Ingest WebAudio procedural SFX for sound feedback (`playSound('collect')`, `playSound('hit')`, `playSound('win')`, `playSound('click')`).
 
 OUTPUT FORMAT:
 Return valid HTML. Start your response immediately with `<!DOCTYPE html>` or put the HTML code inside ````html ... ```` code blocks.
 """
 
-    system_prompt = "You are an expert Phaser 3 developer. Author valid, bug-free, complete single-file HTML5 games with inline JS and Phaser physics."
+    system_prompt = "You are an expert Phaser 3 developer. Author valid, bug-free, complete single-file HTML5 games with inline JS, WebAudio SFX, and Phaser physics."
     
     response = await call_ollama(prompt, system_prompt=system_prompt, temperature=0.1)
-    
-    # Advanced Multi-Strategy HTML Extraction
     html_code = extract_html_code(response)
     
     if not html_code or len(html_code) < 300:
@@ -75,40 +75,24 @@ Return valid HTML. Start your response immediately with `<!DOCTYPE html>` or put
 
 
 def extract_html_code(response_text: str) -> str:
-    """
-    Extracts HTML content using multiple flexible pattern matching strategies.
-    """
     if not response_text:
         return ""
-
-    # Strategy 1: Fenced code block with html tag
     match = re.search(r"```html\s*(.*?)\s*```", response_text, re.DOTALL | re.IGNORECASE)
     if match and len(match.group(1).strip()) > 200:
         return match.group(1).strip()
-
-    # Strategy 2: Fenced code block without tag containing <!DOCTYPE or <html
     match = re.search(r"```\s*(<!DOCTYPE html>.*?</html>)\s*```", response_text, re.DOTALL | re.IGNORECASE)
     if match and len(match.group(1).strip()) > 200:
         return match.group(1).strip()
-
-    # Strategy 3: Raw HTML from <!DOCTYPE html> to </html>
     match = re.search(r"(<!DOCTYPE html>.*?</html>)", response_text, re.DOTALL | re.IGNORECASE)
     if match and len(match.group(1).strip()) > 200:
         return match.group(1).strip()
-
-    # Strategy 4: Raw HTML starting with <html to </html>
     match = re.search(r"(<html.*?>.*?</html>)", response_text, re.DOTALL | re.IGNORECASE)
     if match and len(match.group(1).strip()) > 200:
         return "<!DOCTYPE html>\n" + match.group(1).strip()
-
     return ""
 
 
 def generate_dynamic_genre_phaser_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> str:
-    """
-    Selects and builds a robust Phaser 3 / HTML5 game template specifically tailored to the GDD's genre & topic.
-    Supports: Grid / Tic-Tac-Toe, Maze / Labyrinth, Gravity Runner, Slingshot Launcher, Vehicle Slalom, Space Shooter.
-    """
     genre_str = str(gdd.get("genre", "")).lower()
     title_str = str(gdd.get("game_title", "")).lower()
     combined_str = f"{genre_str} {title_str}"
@@ -136,8 +120,7 @@ def build_grid_tictactoe_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> s
     bg_color = colors.get("background", "#0f172a")
     edu_rules = gdd.get("educational_rules", [])
     
-    concept_q = edu_rules[0].get("concept", "Is this statement correct?") if edu_rules else "Educational Challenge"
-    correct_a = edu_rules[0].get("correct_answer", "Correct") if edu_rules else "Correct"
+    concept_q = edu_rules[0].get("concept", "Is this concept rule correct?") if edu_rules else "Educational Challenge"
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -186,14 +169,14 @@ def build_grid_tictactoe_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> s
     #status {{
       margin-top: 20px; font-size: 1.2rem; font-weight: 600; color: #4ade80; text-align: center;
     }}
-    #quiz-modal {{
+    #quiz-modal, #analytics-modal {{
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(5,8,15,0.85); backdrop-filter: blur(8px);
       align-items: center; justify-content: center; z-index: 100;
     }}
     .modal-card {{
       background: #0f172a; border: 2px solid #38bdf8; border-radius: 16px;
-      padding: 24px; max-width: 420px; text-align: center; box-shadow: 0 0 30px rgba(56,189,248,0.3);
+      padding: 24px; max-width: 440px; text-align: center; box-shadow: 0 0 30px rgba(56,189,248,0.3);
     }}
     .btn {{
       padding: 10px 20px; background: #38bdf8; border: none; color: #000;
@@ -205,7 +188,7 @@ def build_grid_tictactoe_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> s
 <body>
 
   <h1>{title}</h1>
-  <p class="subtitle">Answer educational questions correctly to claim your mark on the grid!</p>
+  <p class="subtitle">Solve educational questions to claim grid cells & unlock victory!</p>
 
   <div id="board">
     <div class="cell" onclick="handleCellClick(0)"></div>
@@ -223,18 +206,60 @@ def build_grid_tictactoe_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> s
 
   <div id="quiz-modal">
     <div class="modal-card">
-      <h3 style="color:#38bdf8; margin-top:0;">Educational Challenge</h3>
+      <h3 style="color:#38bdf8; margin-top:0;">Educational Concept Challenge</h3>
       <p id="quiz-question" style="font-size:0.95rem; color:#cbd5e1;"></p>
       <button class="btn" onclick="submitAnswer(true)" id="ans-true">A) Correct Concept</button>
       <button class="btn" style="background:#f87171;" onclick="submitAnswer(false)">B) Incorrect Concept</button>
     </div>
   </div>
 
+  <div id="analytics-modal">
+    <div class="modal-card" style="border-color:#4ade80;">
+      <h2 style="color:#4ade80; margin-top:0;">🎓 Mastery Analytics Report</h2>
+      <p style="color:#cbd5e1;">Game Session Complete!</p>
+      <div style="text-align:left; background:#1e293b; padding:15px; border-radius:10px; margin:15px 0;">
+        <p><strong>Concepts Solved:</strong> <span id="stat-solved">0</span></p>
+        <p><strong>Accuracy Rating:</strong> <span id="stat-accuracy">100%</span></p>
+        <p><strong>Earned Badge:</strong> 🏆 <span id="stat-badge">Master Strategist</span></p>
+      </div>
+      <button class="btn" onclick="location.reload()">Play Again</button>
+    </div>
+  </div>
+
   <script>
+    // Procedural WebAudio Sound Synthesizer
+    function playSound(type) {{
+      try {{
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        const now = ctx.currentTime;
+        if (type === 'click' || type === 'collect') {{
+          osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.setValueAtTime(659.25, now + 0.08);
+          gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+          osc.start(now); osc.stop(now + 0.2);
+        }} else if (type === 'hit') {{
+          osc.type = 'square'; osc.frequency.setValueAtTime(160, now);
+          osc.frequency.exponentialRampToValueAtTime(40, now + 0.2);
+          gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+          osc.start(now); osc.stop(now + 0.2);
+        }} else if (type === 'win') {{
+          osc.type = 'triangle'; osc.frequency.setValueAtTime(440, now);
+          osc.frequency.setValueAtTime(554.37, now + 0.1);
+          osc.frequency.setValueAtTime(659.25, now + 0.2);
+          gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+          osc.start(now); osc.stop(now + 0.4);
+        }}
+      }} catch(e) {{}}
+    }}
+
     let boardState = Array(9).fill(null);
     let currentPlayer = 'X';
     let selectedCellIndex = null;
     let gameActive = true;
+    let totalAttempts = 0, correctAttempts = 0;
 
     const questions = [
       "{concept_q[:80]}",
@@ -244,25 +269,33 @@ def build_grid_tictactoe_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> s
 
     function handleCellClick(index) {{
       if (!gameActive || boardState[index] !== null) return;
+      playSound('click');
       selectedCellIndex = index;
       document.getElementById('quiz-question').innerText = questions[index % questions.length];
       document.getElementById('quiz-modal').style.display = 'flex';
     }}
 
     function submitAnswer(isCorrect) {{
+      totalAttempts++;
       document.getElementById('quiz-modal').style.display = 'none';
       if (isCorrect) {{
+        correctAttempts++;
+        playSound('collect');
         boardState[selectedCellIndex] = currentPlayer;
         const cells = document.querySelectorAll('.cell');
         cells[selectedCellIndex].innerText = currentPlayer;
         cells[selectedCellIndex].classList.add(currentPlayer.toLowerCase());
         
         if (checkWin()) {{
-          document.getElementById('status').innerText = '🎉 Player ' + currentPlayer + ' Wins! Game Complete!';
+          playSound('win');
+          document.getElementById('status').innerText = '🎉 Player ' + currentPlayer + ' Wins!';
           gameActive = false;
+          showAnalytics();
         }} else if (boardState.every(c => c !== null)) {{
+          playSound('win');
           document.getElementById('status').innerText = '🤝 Draw Game!';
           gameActive = false;
+          showAnalytics();
         }} else {{
           currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
           document.getElementById('status').innerText = "Player " + currentPlayer + "'s Turn";
@@ -271,7 +304,8 @@ def build_grid_tictactoe_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> s
           }}
         }}
       }} else {{
-        document.getElementById('status').innerText = '❌ Incorrect answer! Turn lost to opponent.';
+        playSound('hit');
+        document.getElementById('status').innerText = '❌ Incorrect answer! Turn lost.';
         currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
         if (currentPlayer === 'O' && gameActive) {{
           setTimeout(botTurn, 600);
@@ -289,8 +323,10 @@ def build_grid_tictactoe_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> s
         cells[choice].classList.add('o');
         
         if (checkWin()) {{
+          playSound('hit');
           document.getElementById('status').innerText = '🤖 Bot Wins!';
           gameActive = false;
+          showAnalytics();
         }} else {{
           currentPlayer = 'X';
           document.getElementById('status').innerText = "Player X's Turn";
@@ -305,6 +341,16 @@ def build_grid_tictactoe_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> s
         [0,4,8],[2,4,6]
       ];
       return wins.some(w => boardState[w[0]] && boardState[w[0]] === boardState[w[1]] && boardState[w[0]] === boardState[w[2]]);
+    }}
+
+    function showAnalytics() {{
+      const acc = totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 100;
+      document.getElementById('stat-solved').innerText = correctAttempts;
+      document.getElementById('stat-accuracy').innerText = acc + '%';
+      document.getElementById('stat-badge').innerText = acc >= 80 ? 'Master Strategist 🏆' : 'Concept Apprentice 🎖️';
+      setTimeout(() => {{
+        document.getElementById('analytics-modal').style.display = 'flex';
+      }}, 1000);
     }}
   </script>
 </body>
@@ -334,6 +380,23 @@ def build_maze_explorer_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> st
 <body>
   <div id="game-container"></div>
   <script>
+    function playSound(type) {{
+      try {{
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator(); const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination); const now = ctx.currentTime;
+        if (type === 'collect') {{
+          osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, now); osc.frequency.setValueAtTime(659.25, now + 0.08);
+          gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+          osc.start(now); osc.stop(now + 0.2);
+        }} else if (type === 'win') {{
+          osc.type = 'triangle'; osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(659.25, now + 0.2);
+          gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+          osc.start(now); osc.stop(now + 0.4);
+        }}
+      }} catch(e) {{}}
+    }}
+
     const config = {{
       type: Phaser.AUTO, width: 800, height: 600, parent: 'game-container', backgroundColor: '{bg_color}',
       physics: {{ default: 'arcade', arcade: {{ gravity: {{ y: 0 }}, debug: false }} }},
@@ -347,55 +410,33 @@ def build_maze_explorer_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> st
 
     function preload() {{
       let g = this.add.graphics();
-      // Player
       g.fillStyle(parseInt("{player_color}".replace("#","0x")), 1); g.fillCircle(16, 16, 16);
       g.generateTexture('player_tex', 32, 32); g.clear();
 
-      // Wall
       g.fillStyle(0x334155, 1); g.fillRect(0, 0, 40, 40);
       g.generateTexture('wall_tex', 40, 40); g.clear();
 
-      // Knowledge Gem
       g.fillStyle(0x4ade80, 1); g.fillCircle(12, 12, 12);
       g.generateTexture('gem_tex', 24, 24); g.clear();
 
-      // Exit Portal
       g.fillStyle(0xc084fc, 1); g.fillRect(0, 0, 40, 40);
       g.generateTexture('portal_tex', 40, 40); g.destroy();
     }}
 
     function create() {{
-      walls = this.physics.add.staticGroup();
-      gems = this.physics.add.group();
+      walls = this.physics.add.staticGroup(); gems = this.physics.add.group();
 
-      // Outer boundary walls
-      for (let x = 0; x < 800; x += 40) {{
-        walls.create(x + 20, 20, 'wall_tex');
-        walls.create(x + 20, 580, 'wall_tex');
-      }}
-      for (let y = 40; y < 580; y += 40) {{
-        walls.create(20, y + 20, 'wall_tex');
-        walls.create(780, y + 20, 'wall_tex');
-      }}
+      for (let x = 0; x < 800; x += 40) {{ walls.create(x + 20, 20, 'wall_tex'); walls.create(x + 20, 580, 'wall_tex'); }}
+      for (let y = 40; y < 580; y += 40) {{ walls.create(20, y + 20, 'wall_tex'); walls.create(780, y + 20, 'wall_tex'); }}
 
-      // Internal Maze Pillars
-      let mazeGrid = [
-        [160, 120], [160, 240], [160, 360], [160, 480],
-        [320, 200], [320, 400], [480, 120], [480, 320], [640, 240], [640, 440]
-      ];
+      let mazeGrid = [[160, 120], [160, 240], [160, 360], [160, 480], [320, 200], [320, 400], [480, 120], [480, 320], [640, 240], [640, 440]];
       mazeGrid.forEach(p => walls.create(p[0], p[1], 'wall_tex'));
 
-      // Spawn Knowledge Gems
       let gemLocs = [[240, 160], [400, 300], [560, 160], [400, 480], [600, 360]];
       gemLocs.forEach(p => gems.create(p[0], p[1], 'gem_tex'));
 
-      // Exit Portal
-      exitPortal = this.physics.add.sprite(720, 500, 'portal_tex');
-      exitPortal.body.allowGravity = false;
-
-      // Player
-      player = this.physics.add.sprite(80, 80, 'player_tex');
-      player.setCollideWorldBounds(true);
+      exitPortal = this.physics.add.sprite(720, 500, 'portal_tex'); exitPortal.body.allowGravity = false;
+      player = this.physics.add.sprite(80, 80, 'player_tex'); player.setCollideWorldBounds(true);
 
       this.physics.add.collider(player, walls);
       this.physics.add.overlap(player, gems, collectGem, null, this);
@@ -408,25 +449,21 @@ def build_maze_explorer_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> st
 
     function update() {{
       if (!gameActive) return;
-
       player.setVelocity(0);
       if (cursors.left.isDown) player.setVelocityX(-220);
       else if (cursors.right.isDown) player.setVelocityX(220);
-
       if (cursors.up.isDown) player.setVelocityY(-220);
       else if (cursors.down.isDown) player.setVelocityY(220);
     }}
 
     function collectGem(player, gem) {{
-      gem.destroy();
-      score += 1;
+      gem.destroy(); playSound('collect'); score += 1;
       scoreText.setText('Knowledge Gems: ' + score + ' / 5');
     }}
 
     function reachExit(player, portal) {{
       if (score >= 5) {{
-        gameActive = false;
-        player.setTint(0x4ade80);
+        gameActive = false; playSound('win'); player.setTint(0x4ade80);
         statusText.setText('🎉 MAZE COMPLETED! ALL KNOWLEDGE UNLOCKED!');
       }} else {{
         statusText.setText('⚠️ Collect all 5 Gems before exiting!');
@@ -460,6 +497,27 @@ def build_space_shooter_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> st
 <body>
   <div id="game-container"></div>
   <script>
+    function playSound(type) {{
+      try {{
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator(); const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination); const now = ctx.currentTime;
+        if (type === 'shoot') {{
+          osc.type = 'sawtooth'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
+          gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+          osc.start(now); osc.stop(now + 0.15);
+        }} else if (type === 'hit') {{
+          osc.type = 'square'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(30, now + 0.25);
+          gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+          osc.start(now); osc.stop(now + 0.25);
+        }} else if (type === 'collect') {{
+          osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, now); osc.frequency.setValueAtTime(659.25, now + 0.08);
+          gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+          osc.start(now); osc.stop(now + 0.2);
+        }}
+      }} catch(e) {{}}
+    }}
+
     const config = {{
       type: Phaser.AUTO, width: 800, height: 600, parent: 'game-container', backgroundColor: '{bg_color}',
       physics: {{ default: 'arcade', arcade: {{ gravity: {{ y: 0 }}, debug: false }} }},
@@ -474,26 +532,15 @@ def build_space_shooter_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> st
 
     function preload() {{
       let g = this.add.graphics();
-      g.fillStyle(parseInt("{player_color}".replace("#","0x")), 1);
-      g.fillTriangle(20, 0, 0, 40, 40, 40); g.generateTexture('ship_tex', 40, 40); g.clear();
-
-      g.fillStyle(0x38bdf8, 1); g.fillRect(0, 0, 6, 16);
-      g.generateTexture('laser_tex', 6, 16); g.clear();
-
-      g.fillStyle(0x4ade80, 1); g.fillCircle(18, 18, 18);
-      g.generateTexture('target_tex', 36, 36); g.clear();
-
-      g.fillStyle(0xf87171, 1); g.fillRect(0, 0, 32, 32);
-      g.generateTexture('hazard_tex', 32, 32); g.destroy();
+      g.fillStyle(parseInt("{player_color}".replace("#","0x")), 1); g.fillTriangle(20, 0, 0, 40, 40, 40); g.generateTexture('ship_tex', 40, 40); g.clear();
+      g.fillStyle(0x38bdf8, 1); g.fillRect(0, 0, 6, 16); g.generateTexture('laser_tex', 6, 16); g.clear();
+      g.fillStyle(0x4ade80, 1); g.fillCircle(18, 18, 18); g.generateTexture('target_tex', 36, 36); g.clear();
+      g.fillStyle(0xf87171, 1); g.fillRect(0, 0, 32, 32); g.generateTexture('hazard_tex', 32, 32); g.destroy();
     }}
 
     function create() {{
-      player = this.physics.add.sprite(400, 540, 'ship_tex');
-      player.setCollideWorldBounds(true);
-
-      cursors = this.input.keyboard.createCursorKeys();
-      fireKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-
+      player = this.physics.add.sprite(400, 540, 'ship_tex'); player.setCollideWorldBounds(true);
+      cursors = this.input.keyboard.createCursorKeys(); fireKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
       lasers = this.physics.add.group({{ defaultKey: 'laser_tex', maxSize: 20 }});
       targets = this.physics.add.group(); hazards = this.physics.add.group();
 
@@ -501,7 +548,6 @@ def build_space_shooter_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> st
       shieldText = this.add.text(660, 16, 'Shields: ❤️❤️❤️', {{ fontSize: '20px', fill: '#f87171' }});
 
       this.time.addEvent({{ delay: 1300, callback: spawnWave, callbackScope: this, loop: true }});
-
       this.physics.add.overlap(lasers, targets, destroyTarget, null, this);
       this.physics.add.overlap(lasers, hazards, destroyHazard, null, this);
       this.physics.add.overlap(player, hazards, hitPlayer, null, this);
@@ -509,7 +555,6 @@ def build_space_shooter_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> st
 
     function update(time) {{
       if (!gameActive) return;
-
       if (cursors.left.isDown) player.setVelocityX(-400);
       else if (cursors.right.isDown) player.setVelocityX(400);
       else player.setVelocityX(0);
@@ -517,8 +562,8 @@ def build_space_shooter_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> st
       if (fireKey.isDown && time > lastFired) {{
         let laser = lasers.get(player.x, player.y - 20);
         if (laser) {{
-          laser.setActive(true).setVisible(true);
-          laser.body.velocity.y = -600;
+          playSound('shoot');
+          laser.setActive(true).setVisible(true); laser.body.velocity.y = -600;
           lastFired = time + 180;
         }}
       }}
@@ -535,17 +580,17 @@ def build_space_shooter_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> st
     }}
 
     function destroyTarget(laser, target) {{
-      laser.setActive(false).setVisible(false); target.destroy();
+      playSound('collect'); laser.setActive(false).setVisible(false); target.destroy();
       score += 250; scoreText.setText('Score: ' + score);
     }}
 
     function destroyHazard(laser, hazard) {{
-      laser.setActive(false).setVisible(false); hazard.destroy();
+      playSound('hit'); laser.setActive(false).setVisible(false); hazard.destroy();
       score += 50; scoreText.setText('Score: ' + score);
     }}
 
     function hitPlayer(player, hazard) {{
-      hazard.destroy(); shields--;
+      playSound('hit'); hazard.destroy(); shields--;
       if (shields <= 0) {{
         shieldText.setText('Shields: ❌'); gameActive = false; player.setTint(0xff0000);
         this.add.text(400, 300, 'GAME OVER\\nRefresh to Retry', {{ fontSize: '34px', fill: '#ff4757', align: 'center' }}).setOrigin(0.5);
@@ -580,6 +625,23 @@ def build_gravity_runner_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> s
 <body>
   <div id="game-container"></div>
   <script>
+    function playSound(type) {{
+      try {{
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator(); const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination); const now = ctx.currentTime;
+        if (type === 'collect') {{
+          osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, now); osc.frequency.setValueAtTime(659.25, now + 0.08);
+          gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+          osc.start(now); osc.stop(now + 0.2);
+        }} else if (type === 'hit') {{
+          osc.type = 'square'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(30, now + 0.25);
+          gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+          osc.start(now); osc.stop(now + 0.25);
+        }}
+      }} catch(e) {{}}
+    }}
+
     const config = {{
       type: Phaser.AUTO, width: 800, height: 600, parent: 'game-container', backgroundColor: '{bg_color}',
       physics: {{ default: 'arcade', arcade: {{ gravity: {{ y: 900 }}, debug: false }} }},
@@ -603,7 +665,6 @@ def build_gravity_runner_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> s
       let g = this.add.graphics(); g.fillStyle(0x1e293b, 1); g.fillRect(0, 0, 800, 20); g.generateTexture('platform_tex', 800, 20); g.destroy();
 
       floor.create(400, 590, 'platform_tex'); ceiling.create(400, 10, 'platform_tex');
-
       player = this.physics.add.sprite(150, 530, 'runner_tex'); player.setCollideWorldBounds(true);
       this.physics.add.collider(player, floor); this.physics.add.collider(player, ceiling);
 
@@ -620,6 +681,7 @@ def build_gravity_runner_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> s
     function update() {{
       if (!gameActive) return;
       if (Phaser.Input.Keyboard.JustDown(spaceKey)) {{
+        playSound('collect');
         gravityFlipped = !gravityFlipped;
         this.physics.world.gravity.y = gravityFlipped ? -900 : 900;
         player.setFlipY(gravityFlipped);
@@ -638,9 +700,9 @@ def build_gravity_runner_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> s
       }}
     }}
 
-    function collectOrb(player, orb) {{ orb.destroy(); score += 200; }}
+    function collectOrb(player, orb) {{ orb.destroy(); playSound('collect'); score += 200; }}
     function hitSpike(player, spike) {{
-      gameActive = false; this.physics.pause(); player.setTint(0xff0000);
+      playSound('hit'); gameActive = false; this.physics.pause(); player.setTint(0xff0000);
       this.add.text(400, 300, 'GRAVITY RUNNER CRASHED!\\nRefresh to Retry', {{ fontSize: '32px', fill: '#f87171', align: 'center' }}).setOrigin(0.5);
     }}
   </script>
@@ -670,6 +732,23 @@ def build_slingshot_launcher_game(gdd: Dict[str, Any], palette: Dict[str, Any]) 
 <body>
   <div id="game-container"></div>
   <script>
+    function playSound(type) {{
+      try {{
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator(); const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination); const now = ctx.currentTime;
+        if (type === 'shoot') {{
+          osc.type = 'sawtooth'; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(150, now + 0.15);
+          gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+          osc.start(now); osc.stop(now + 0.15);
+        }} else if (type === 'collect') {{
+          osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, now); osc.frequency.setValueAtTime(659.25, now + 0.08);
+          gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+          osc.start(now); osc.stop(now + 0.2);
+        }}
+      }} catch(e) {{}}
+    }}
+
     const config = {{
       type: Phaser.AUTO, width: 800, height: 600, parent: 'game-container', backgroundColor: '{bg_color}',
       physics: {{ default: 'arcade', arcade: {{ gravity: {{ y: 400 }}, debug: false }} }},
@@ -717,12 +796,12 @@ def build_slingshot_launcher_game(gdd: Dict[str, Any], palette: Dict[str, Any]) 
     }}
     function releaseLaunch(pointer) {{
       if (isDragging) {{
-        isDragging = false; line.clear();
+        isDragging = false; line.clear(); playSound('shoot');
         let dx = launchPos.x - projectile.x; let dy = launchPos.y - projectile.y;
         projectile.body.allowGravity = true; projectile.setVelocity(dx * 4, dy * 4);
       }}
     }}
-    function hitBlock(proj, block) {{ block.destroy(); score += 200; scoreText.setText('Score: ' + score); }}
+    function hitBlock(proj, block) {{ block.destroy(); playSound('collect'); score += 200; scoreText.setText('Score: ' + score); }}
   </script>
 </body>
 </html>"""
@@ -750,6 +829,23 @@ def build_vehicle_slalom_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> s
 <body>
   <div id="game-container"></div>
   <script>
+    function playSound(type) {{
+      try {{
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator(); const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination); const now = ctx.currentTime;
+        if (type === 'collect') {{
+          osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, now); osc.frequency.setValueAtTime(659.25, now + 0.08);
+          gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+          osc.start(now); osc.stop(now + 0.2);
+        }} else if (type === 'hit') {{
+          osc.type = 'square'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(30, now + 0.25);
+          gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+          osc.start(now); osc.stop(now + 0.25);
+        }}
+      }} catch(e) {{}}
+    }}
+
     const config = {{
       type: Phaser.AUTO, width: 800, height: 600, parent: 'game-container', backgroundColor: '{bg_color}',
       physics: {{ default: 'arcade', arcade: {{ gravity: {{ y: 0 }}, debug: false }} }},
@@ -796,10 +892,9 @@ def build_vehicle_slalom_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> s
       }}
     }}
 
-    function hitBoost(car, boost) {{ boost.destroy(); score += 300; scoreText.setText('Speed Score: ' + score); }}
+    function hitBoost(car, boost) {{ boost.destroy(); playSound('collect'); score += 300; scoreText.setText('Speed Score: ' + score); }}
     function hitOil(car, oil) {{
-      gameActive = false; car.setTint(0xff0000); this.physics.pause();
-      this.add.text(400, 300, 'VEHICLE CRASHED!\\nRefresh to Retry', {{ fontSize: '34px', fill: '#f87171', align: 'center' }}).setOrigin(0.5);
+      oil.destroy(); playSound('hit'); score = Math.max(0, score - 150); scoreText.setText('Speed Score: ' + score);
     }}
   </script>
 </body>

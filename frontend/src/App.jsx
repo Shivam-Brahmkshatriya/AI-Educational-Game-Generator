@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Sparkles, Gamepad2, Zap, Terminal, CheckCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sparkles, Gamepad2, Zap, Layers, GraduationCap } from 'lucide-react';
 import { PipelineVisualizer } from './components/PipelineVisualizer';
 import { GddApprovalModal } from './components/GddApprovalModal';
 import { GamePreview } from './components/GamePreview';
@@ -14,8 +14,27 @@ const QUICK_TOPICS = [
   "Solar System & Gravity"
 ];
 
+const GENRE_OPTIONS = [
+  "Auto-Detect (AI Managed)",
+  "Grid / Board / Turn-Based Game",
+  "Maze & Dungeon Explorer",
+  "Physics Slingshot / Trajectory Launcher",
+  "Gravity-Flipping Runner Platformer",
+  "High-Speed Slalom / Vehicle Dodger",
+  "Arcade Space / Defense Shooter"
+];
+
+const GRADE_OPTIONS = [
+  "Elementary (K-5)",
+  "Middle School (6-8)",
+  "High School / AP",
+  "College / Adult"
+];
+
 export default function App() {
   const [topicInput, setTopicInput] = useState("");
+  const [selectedGenre, setSelectedGenre] = useState("Auto-Detect (AI Managed)");
+  const [selectedGrade, setSelectedGrade] = useState("Middle School (6-8)");
   const [sessionId, setSessionId] = useState(null);
   const [status, setStatus] = useState("idle"); // idle, running, hitl_pending, completed, failed
   const [logs, setLogs] = useState([]);
@@ -40,14 +59,17 @@ export default function App() {
       const res = await fetch("http://localhost:8000/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic })
+        body: JSON.stringify({
+          topic,
+          genre_override: selectedGenre,
+          target_grade: selectedGrade
+        })
       });
 
       if (!res.ok) throw new Error("Failed to initialize session");
       const data = await res.json();
       setSessionId(data.session_id);
 
-      // Connect WebSocket
       const websocket = new WebSocket(`ws://localhost:8000/ws/pipeline/${data.session_id}`);
       
       websocket.onmessage = (event) => {
@@ -109,7 +131,7 @@ export default function App() {
             </h1>
           </div>
           <p style={{ fontSize: '0.9rem', color: '#94a3b8' }}>
-            LangGraph Multi-Agent Architecture | 100% Local Intelligence & Offline Procedural Graphics
+            Multi-Agent Architecture | WebAudio SFX | Custom Genre Control & Automated QA
           </p>
         </div>
 
@@ -125,6 +147,7 @@ export default function App() {
           What Educational Topic should we turn into a game?
         </h2>
 
+        {/* Input Field + Generate Button */}
         <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
           <input
             type="text"
@@ -152,6 +175,55 @@ export default function App() {
             <Sparkles style={{ width: '18px', height: '18px' }} />
             {status === 'running' ? 'Agents Generating...' : 'Generate Game'}
           </button>
+        </div>
+
+        {/* Customization Selectors: Genre & Grade */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px', background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div>
+            <label style={{ fontSize: '0.8rem', color: '#38bdf8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+              <Layers style={{ width: '14px', height: '14px' }} /> Gameplay Genre Engine
+            </label>
+            <select
+              value={selectedGenre}
+              onChange={(e) => setSelectedGenre(e.target.value)}
+              style={{
+                width: '100%',
+                background: '#090d16',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                color: '#ffffff',
+                fontSize: '0.85rem'
+              }}
+            >
+              {GENRE_OPTIONS.map((g, i) => (
+                <option key={i} value={g}>{g}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '0.8rem', color: '#c084fc', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+              <GraduationCap style={{ width: '14px', height: '14px' }} /> Target Grade Level
+            </label>
+            <select
+              value={selectedGrade}
+              onChange={(e) => setSelectedGrade(e.target.value)}
+              style={{
+                width: '100%',
+                background: '#090d16',
+                border: '1px solid rgba(192, 132, 252, 0.3)',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                color: '#ffffff',
+                fontSize: '0.85rem'
+              }}
+            >
+              {GRADE_OPTIONS.map((g, i) => (
+                <option key={i} value={g}>{g}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Quick Suggestion Pills */}

@@ -39,7 +39,7 @@ async def design_subagents_node(state: GameState) -> Dict[str, Any]:
     facts = state["research_facts"]
     
     # Run sub-agents in parallel
-    mechanics_task = run_mechanic_agent(topic, facts)
+    mechanics_task = run_mechanic_agent(topic, facts, genre_override=state.get("genre_override"))
     narrative_task = run_narrative_agent(topic)
     edu_task = run_educational_agent(topic, facts)
     
