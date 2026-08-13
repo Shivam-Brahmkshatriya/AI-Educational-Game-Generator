@@ -11,11 +11,13 @@ const QUICK_TOPICS = [
   "Photosynthesis & Plant Biology",
   "Pythagorean Theorem",
   "Cybersecurity Basics",
-  "Solar System & Gravity"
+  "Solar System & Gravity",
+  "Motorcycle Highway Physics"
 ];
 
 const GENRE_OPTIONS = [
   "Auto-Detect (AI Managed)",
+  "2D Bike Rider / Motorbike Highway Dodge",
   "Grid / Board / Turn-Based Game",
   "Maze & Dungeon Explorer",
   "Physics Slingshot / Trajectory Launcher",
@@ -131,7 +133,7 @@ export default function App() {
             </h1>
           </div>
           <p style={{ fontSize: '0.9rem', color: '#94a3b8' }}>
-            Multi-Agent Architecture | WebAudio SFX | Custom Genre Control & Automated QA
+            Multi-Agent Architecture | 2D Bike Rider Engine | WebAudio SFX | Automated QA
           </p>
         </div>
 
@@ -153,7 +155,7 @@ export default function App() {
             type="text"
             value={topicInput}
             onChange={(e) => setTopicInput(e.target.value)}
-            placeholder="e.g. Chemical Bonding, Fractions, Photosynthesis, Ancient Rome..."
+            placeholder="e.g. Chemical Bonding, Motorbike Physics, Photosynthesis, Fractions..."
             style={{
               flex: 1,
               background: '#090d16',

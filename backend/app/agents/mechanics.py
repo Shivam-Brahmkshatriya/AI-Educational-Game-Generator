@@ -29,6 +29,10 @@ GAME_GENRES = [
     {
         "name": "High-Speed Slalom / Vehicle Dodger",
         "description": "Drive a futuristic hover-car through 3-4 highway lanes. Steer left/right to hit speed-boost facts while dodging obstacles."
+    },
+    {
+        "name": "2D Bike Rider / Motorbike Highway Dodge",
+        "description": "Ride a high-speed motorcycle across a 3-lane highway, steering with Left/Right arrows, performing wheelie speed boosts, collecting energy canisters, and avoiding road cones."
     }
 ]
 
@@ -45,37 +49,54 @@ async def run_mechanic_agent(topic: str, research_facts: List[str], genre_overri
             if g["name"].lower() in genre_override.lower() or genre_override.lower() in g["name"].lower():
                 genre = g
                 break
-
-    if not genre:
-        # Auto-detect genre based on topic
-        if any(k in topic_lower for k in ["tic", "tac", "toe", "grid", "board", "matrix", "turn"]):
-            genre = GAME_GENRES[0] # Grid / Board
-        elif any(k in topic_lower for k in ["maze", "labyrinth", "dungeon", "explore"]):
-            genre = GAME_GENRES[1] # Maze Explorer
+        if not genre:
+            genre = {"name": genre_override, "description": f"Custom player genre: {genre_override}"}
+    else:
+        if any(k in topic_lower for k in ["tic", "tac", "toe", "grid", "board", "puzzle", "matrix"]):
+            genre = GAME_GENRES[0]
+        elif any(k in topic_lower for k in ["maze", "dungeon", "labyrinth", "explore"]):
+            genre = GAME_GENRES[1]
+        elif any(k in topic_lower for k in ["space", "ship", "shoot", "defend", "laser"]):
+            genre = GAME_GENRES[2]
+        elif any(k in topic_lower for k in ["slingshot", "launch", "angle", "catapult", "physics"]):
+            genre = GAME_GENRES[3]
+        elif any(k in topic_lower for k in ["runner", "gravity", "flip", "jump"]):
+            genre = GAME_GENRES[4]
+        elif any(k in topic_lower for k in ["bike", "motorbike", "rider", "cycle", "motorcycle"]):
+            genre = GAME_GENRES[6]
         else:
-            genre = random.choice(GAME_GENRES[2:])
+            genre = random.choice(GAME_GENRES)
 
-    facts_str = "\n".join([f"- {f}" for f in research_facts])
-    
+    facts_summary = "\n".join([f"- {f}" for f in research_facts])
+
     prompt = f"""
-You are an award-winning Senior Gameplay Mechanic Designer.
-Educational Topic: "{topic}"
-Key Facts to Teach:
-{facts_str}
+You are the Lead Gameplay Mechanics Designer.
+Create a unique 2D gameplay mechanic spec for an educational game about: "{topic}".
 
-SELECTED GAME GENRE: {genre['name']}
-Genre Style Description: {genre['description']}
+SPECIFIED GAME GENRE: {genre['name']}
+Genre Description: {genre['description']}
 
-Propose a high-octane 2D game mechanic loop for this genre.
-Your proposal MUST explicitly explain:
-1. Player Controls & Core Movement matching the genre ({genre['name']}).
-2. How facts from "{topic}" trigger active gameplay rewards (e.g. ammo boost, speed dash, grid claim, shield, score multiplier).
-3. Primary win and loss conditions.
+Fact Database:
+{facts_summary}
 
-Keep it detailed, concise, and focused strictly on active gameplay mechanics.
+STRICT REQUIREMENTS FOR THIS GENRE ({genre['name']}):
+1. THE GAMEPLAY MUST ACCURATELY REFLECT THIS GENRE:
+   - If Grid/Board: Must use clickable grid cells and turn-based logic!
+   - If Maze: Must use a tile grid maze with player movement and collectible gems!
+   - If Bike Rider: Must be a motorcycle/bike riding highway game with lane changing (Left/Right) and speed boosts!
+   - If Shooter: Must use ship movement and laser shooting!
+2. Do NOT default to falling objects if the genre is Bike Rider, Grid, Maze, or Runner!
+3. Define player controls clearly (Arrow keys, Spacebar, Mouse clicks).
+4. Specify educational interaction (e.g. collecting facts boosts speed/score, wrong obstacles deduct health).
+
+Format response as JSON:
+{{
+  "genre": "{genre['name']}",
+  "player_controls": "...",
+  "primary_mechanic": "...",
+  "educational_win_condition": "...",
+  "visual_theme": "..."
+}}
 """
-    system_prompt = "You design novel 2D game mechanics matching specific arcade genres. Return concise text."
-    
-    response = await call_ollama(prompt, system_prompt=system_prompt)
-    logger.info(f"Mechanics Agent generated proposal for topic '{topic}' using genre '{genre['name']}'")
-    return response
+    system_prompt = "You are a master game designer specializing in dynamic HTML5 Phaser 3 game mechanics."
+    return await call_ollama(prompt, system_prompt=system_prompt, temperature=0.2)

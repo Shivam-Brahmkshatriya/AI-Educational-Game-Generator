@@ -49,11 +49,12 @@ STRICT REQUIREMENTS:
 1. Import Phaser 3 script tag: `<script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>`
 2. IMPLEMENT THE EXACT GENRE AND MECHANICS SPECIFIED IN THE GDD:
    - If Tic-Tac-Toe / Grid / Board: Create a 3x3 interactive clickable grid with X and O logic, turn switching, and educational trivia before placing marks!
+   - If Bike Rider / Motorbike Highway: Create a high-speed motorcycle rider on a 3-lane highway with Left/Right lane switching, wheelie boost, energy pickups, and road hazards!
    - If Maze / Labyrinth / Dungeon: Create a maze grid with player movement (Arrow keys/WASD), collectible facts, wall colliders, and an exit portal!
    - If Shooter: Create a space/turret shooter.
    - If Runner / Platformer: Create a gravity runner or jumping platformer.
    - If Slingshot / Physics: Create drag-and-launch physics.
-3. DO NOT default to a falling object catcher or shooter if the genre is a board game, grid puzzle, maze, or runner!
+3. DO NOT default to a falling object catcher or shooter if the genre is a bike rider, board game, grid puzzle, maze, or runner!
 4. Use inline JavaScript inside a `<script>` tag. No external assets/images! Use Phaser procedural graphics or styled HTML/Canvas buttons.
 5. Ingest WebAudio procedural SFX for sound feedback (`playSound('collect')`, `playSound('hit')`, `playSound('win')`, `playSound('click')`).
 
@@ -97,7 +98,9 @@ def generate_dynamic_genre_phaser_game(gdd: Dict[str, Any], palette: Dict[str, A
     title_str = str(gdd.get("game_title", "")).lower()
     combined_str = f"{genre_str} {title_str}"
     
-    if any(k in combined_str for k in ["tic", "tac", "toe", "grid", "board", "turn", "matrix", "puzzle"]):
+    if any(k in combined_str for k in ["bike", "motorbike", "rider", "cycle", "motorcycle"]):
+        return build_bike_rider_game(gdd, palette)
+    elif any(k in combined_str for k in ["tic", "tac", "toe", "grid", "board", "turn", "matrix", "puzzle"]):
         return build_grid_tictactoe_game(gdd, palette)
     elif any(k in combined_str for k in ["maze", "dungeon", "labyrinth", "explore", "quest"]):
         return build_maze_explorer_game(gdd, palette)
@@ -109,6 +112,191 @@ def generate_dynamic_genre_phaser_game(gdd: Dict[str, Any], palette: Dict[str, A
         return build_vehicle_slalom_game(gdd, palette)
     else:
         return build_space_shooter_game(gdd, palette)
+
+
+# ==============================================================================
+# GENRE 0: 2D Bike Rider / Motorbike Highway Dodge Game
+# ==============================================================================
+def build_bike_rider_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> str:
+    title = gdd.get("game_title", "Highway Bike Rider")
+    colors = palette.get("colors", {})
+    bg_color = colors.get("background", "#090d16")
+    bike_color = colors.get("player", "#38bdf8")
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{title}</title>
+  <style>
+    body {{
+      margin: 0; padding: 0;
+      background-color: {bg_color}; color: #ffffff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; overflow: hidden;
+    }}
+    #game-container {{
+      border: 3px solid #38bdf8; border-radius: 16px; overflow: hidden;
+      box-shadow: 0 0 30px rgba(56,189,248,0.3);
+    }}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+
+  <script>
+    function playSound(type) {{
+      try {{
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator(); const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination); const now = ctx.currentTime;
+        if (type === 'rev' || type === 'collect') {{
+          osc.type = 'sawtooth'; osc.frequency.setValueAtTime(220, now);
+          osc.frequency.exponentialRampToValueAtTime(660, now + 0.15);
+          gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+          osc.start(now); osc.stop(now + 0.15);
+        }} else if (type === 'hit') {{
+          osc.type = 'square'; osc.frequency.setValueAtTime(140, now);
+          osc.frequency.exponentialRampToValueAtTime(30, now + 0.25);
+          gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+          osc.start(now); osc.stop(now + 0.25);
+        }} else if (type === 'win') {{
+          osc.type = 'triangle'; osc.frequency.setValueAtTime(440, now);
+          osc.frequency.setValueAtTime(554.37, now + 0.1);
+          osc.frequency.setValueAtTime(659.25, now + 0.2);
+          gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+          osc.start(now); osc.stop(now + 0.4);
+        }}
+      }} catch(e) {{}}
+    }}
+
+    const config = {{
+      type: Phaser.AUTO, width: 800, height: 600, parent: 'game-container', backgroundColor: '{bg_color}',
+      physics: {{ default: 'arcade', arcade: {{ gravity: {{ y: 0 }}, debug: false }} }},
+      scene: {{ preload: preload, create: create, update: update }}
+    }};
+
+    let bike, boostItems, hazards, cursors, lanes = [250, 400, 550], currentLane = 1;
+    let score = 0, speedKm = 120, health = 3, gameActive = true;
+    let scoreText, speedText, healthText, statusText;
+
+    const game = new Phaser.Game(config);
+
+    function preload() {{
+      let g = this.add.graphics();
+      // Draw Bike graphic
+      g.fillStyle(parseInt("{bike_color}".replace("#","0x")), 1);
+      g.fillRect(12, 0, 16, 50); // Body
+      g.fillStyle(0x000000, 1);
+      g.fillRect(8, 5, 24, 8); // Front Wheel Handlebars
+      g.fillRect(8, 38, 24, 8); // Rear Wheel
+      g.fillStyle(0xfbbf24, 1);
+      g.fillCircle(20, 2, 4); // Headlight
+      g.generateTexture('bike_tex', 40, 50); g.clear();
+
+      // Energy Boost Canister
+      g.fillStyle(0x4ade80, 1); g.fillRoundedRect(0, 0, 30, 40, 8);
+      g.fillStyle(0xffffff, 1); g.fillRect(10, 8, 10, 24);
+      g.generateTexture('boost_tex', 30, 40); g.clear();
+
+      // Traffic Hazard Cone
+      g.fillStyle(0xf87171, 1); g.fillTriangle(20, 0, 0, 40, 40, 40);
+      g.fillStyle(0xffffff, 1); g.fillRect(8, 24, 24, 6);
+      g.generateTexture('cone_tex', 40, 40); g.destroy();
+    }}
+
+    function create() {{
+      // Highway Lane Marking Lines
+      let g = this.add.graphics();
+      g.lineStyle(4, 0x334155, 1);
+      g.lineBetween(325, 0, 325, 600);
+      g.lineBetween(475, 0, 475, 600);
+
+      // Yellow Shoulders
+      g.lineStyle(6, 0xfbbf24, 0.8);
+      g.lineBetween(175, 0, 175, 600);
+      g.lineBetween(625, 0, 625, 600);
+
+      bike = this.physics.add.sprite(lanes[currentLane], 500, 'bike_tex');
+      cursors = this.input.keyboard.createCursorKeys();
+      boostItems = this.physics.add.group();
+      hazards = this.physics.add.group();
+
+      scoreText = this.add.text(20, 20, 'Distance Score: 0', {{ fontSize: '20px', fill: '#4ade80', fontWeight: 'bold' }});
+      speedText = this.add.text(20, 50, 'Speed: 120 km/h', {{ fontSize: '18px', fill: '#38bdf8' }});
+      healthText = this.add.text(620, 20, 'Bike Health: 🏍️🏍️🏍️', {{ fontSize: '18px', fill: '#f87171' }});
+      statusText = this.add.text(400, 570, 'STEER WITH LEFT / RIGHT ARROWS | PRESS UP FOR NITRO BOOST', {{ fontSize: '13px', fill: '#94a3b8' }}).setOrigin(0.5);
+
+      this.time.addEvent({{ delay: 900, callback: spawnHighwayItems, callbackScope: this, loop: true }});
+
+      this.physics.add.overlap(bike, boostItems, collectBoost, null, this);
+      this.physics.add.overlap(bike, hazards, hitCone, null, this);
+    }}
+
+    function update() {{
+      if (!gameActive) return;
+
+      if (Phaser.Input.Keyboard.JustDown(cursors.left) && currentLane > 0) {{
+        currentLane--;
+        bike.x = lanes[currentLane];
+        playSound('rev');
+      }} else if (Phaser.Input.Keyboard.JustDown(cursors.right) && currentLane < 2) {{
+        currentLane++;
+        bike.x = lanes[currentLane];
+        playSound('rev');
+      }}
+
+      if (cursors.up.isDown) {{
+        speedKm = 180;
+        bike.y = 470;
+      }} else {{
+        speedKm = 120;
+        bike.y = 500;
+      }}
+
+      score += Math.round(speedKm / 40);
+      scoreText.setText('Distance Score: ' + score);
+      speedText.setText('Speed: ' + speedKm + ' km/h');
+    }}
+
+    function spawnHighwayItems() {{
+      if (!gameActive) return;
+      let laneIdx = Phaser.Math.Between(0, 2);
+      let fallSpeed = speedKm * 2.5;
+      if (Math.random() > 0.4) {{
+        let boost = boostItems.create(lanes[laneIdx], -40, 'boost_tex');
+        boost.setVelocityY(fallSpeed);
+      }} else {{
+        let cone = hazards.create(lanes[laneIdx], -40, 'cone_tex');
+        cone.setVelocityY(fallSpeed);
+      }}
+    }}
+
+    function collectBoost(bike, boost) {{
+      boost.destroy();
+      playSound('collect');
+      score += 250;
+      scoreText.setText('Distance Score: ' + score);
+    }}
+
+    function hitCone(bike, cone) {{
+      cone.destroy();
+      playSound('hit');
+      health--;
+      if (health <= 0) {{
+        healthText.setText('Bike Health: 💥 CRASHED');
+        gameActive = false;
+        bike.setTint(0xff0000);
+        this.add.text(400, 300, 'GAME OVER\\nBike Highway Crash!', {{ fontSize: '32px', fill: '#f87171', align: 'center', fontWeight: 'bold' }}).setOrigin(0.5);
+      }} else {{
+        healthText.setText('Bike Health: ' + '🏍️'.repeat(health));
+      }}
+    }}
+  </script>
+</body>
+</html>"""
 
 
 # ==============================================================================
@@ -227,28 +415,21 @@ def build_grid_tictactoe_game(gdd: Dict[str, Any], palette: Dict[str, Any]) -> s
   </div>
 
   <script>
-    // Procedural WebAudio Sound Synthesizer
     function playSound(type) {{
       try {{
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination);
-        const now = ctx.currentTime;
+        const osc = ctx.createOscillator(); const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination); const now = ctx.currentTime;
         if (type === 'click' || type === 'collect') {{
-          osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, now);
-          osc.frequency.setValueAtTime(659.25, now + 0.08);
+          osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, now); osc.frequency.setValueAtTime(659.25, now + 0.08);
           gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
           osc.start(now); osc.stop(now + 0.2);
         }} else if (type === 'hit') {{
-          osc.type = 'square'; osc.frequency.setValueAtTime(160, now);
-          osc.frequency.exponentialRampToValueAtTime(40, now + 0.2);
+          osc.type = 'square'; osc.frequency.setValueAtTime(160, now); osc.frequency.exponentialRampToValueAtTime(40, now + 0.2);
           gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
           osc.start(now); osc.stop(now + 0.2);
         }} else if (type === 'win') {{
-          osc.type = 'triangle'; osc.frequency.setValueAtTime(440, now);
-          osc.frequency.setValueAtTime(554.37, now + 0.1);
-          osc.frequency.setValueAtTime(659.25, now + 0.2);
+          osc.type = 'triangle'; osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(659.25, now + 0.2);
           gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
           osc.start(now); osc.stop(now + 0.4);
         }}
